@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0 - 2026-08-10
+
+- Add a default-on **keep aspect ratio** switch to pixel-target and print-size
+  modes. It fits the source inside the requested box without stretching or
+  cropping; disabling it preserves exact width and height behavior.
+- Treat missing switch values from older workflows as enabled.
+
 ## 0.3.0 - 2026-08-10
 
 - Preserve the original node id for drop-in workflow compatibility.

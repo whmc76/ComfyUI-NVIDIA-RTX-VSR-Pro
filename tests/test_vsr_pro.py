@@ -10,6 +10,7 @@ from vsr_pro import (
     MAX_OUTPUT_EDGE,
     VERIFIED_VSR_MAX_EDGE,
     assert_channel_integrity,
+    fit_dimensions_preserving_aspect,
     plan_dimensions,
     print_dimensions_to_pixels,
 )
@@ -89,6 +90,39 @@ class PrintDimensionTests(unittest.TestCase):
     def test_non_positive_print_value_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "must be positive"):
             print_dimensions_to_pixels(width_mm=0, height_mm=500, dpi=300)
+
+
+class AspectRatioTests(unittest.TestCase):
+    def test_landscape_source_fits_inside_square_pixel_box(self):
+        self.assertEqual(
+            fit_dimensions_preserving_aspect(
+                input_width=4096,
+                input_height=2048,
+                target_width=6000,
+                target_height=6000,
+            ),
+            (6000, 3000),
+        )
+
+    def test_portrait_source_fits_inside_landscape_print_box(self):
+        self.assertEqual(
+            fit_dimensions_preserving_aspect(
+                input_width=2048,
+                input_height=4096,
+                target_width=6000,
+                target_height=4000,
+            ),
+            (2000, 4000),
+        )
+
+    def test_invalid_target_box_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "must be positive"):
+            fit_dimensions_preserving_aspect(
+                input_width=4096,
+                input_height=4096,
+                target_width=0,
+                target_height=6000,
+            )
 
 
 class ChannelIntegrityTests(unittest.TestCase):

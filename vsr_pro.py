@@ -90,6 +90,21 @@ def print_dimensions_to_pixels(*, width_mm: float, height_mm: float, dpi: int) -
     return max(1, width_px), max(1, height_px)
 
 
+def fit_dimensions_preserving_aspect(
+    *,
+    input_width: int,
+    input_height: int,
+    target_width: int,
+    target_height: int,
+) -> tuple[int, int]:
+    """Fit the source aspect ratio inside a target box without cropping."""
+
+    if min(input_width, input_height, target_width, target_height) <= 0:
+        raise ValueError("Input and target dimensions must be positive")
+    scale = min(target_width / input_width, target_height / input_height)
+    return max(1, round(input_width * scale)), max(1, round(input_height * scale))
+
+
 def assert_channel_integrity(input_frame: torch.Tensor, output_frame: torch.Tensor) -> None:
     """Reject the catastrophic single-channel loss observed at the 16K boundary."""
 

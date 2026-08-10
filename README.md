@@ -22,6 +22,8 @@ installed.
 - Expands exact target-dimension controls from `8192` to `16384`.
 - Adds **print size (mm + DPI)** mode, calculating pixels with
   `pixels = mm / 25.4 x DPI` and reporting the effective scale and dimensions.
+- Adds a default-on **keep aspect ratio** switch to both exact pixel and print
+  modes. It fits inside the requested box without stretching or cropping.
 
 ## Print-size mode
 
@@ -31,6 +33,11 @@ and print DPI. For example, `500 x 500 mm` at `300 DPI` becomes approximately
 outputs the image plus the calculated scale, final pixel width, and pixel
 height. Targets above `16384 px` on either edge are rejected with a clear error
 instead of risking an unusable multi-gigabyte allocation.
+
+When **keep aspect ratio** is enabled, width and height define a bounding box.
+The source is enlarged to the largest size that fits inside it, with no crop or
+distortion. Disable the switch only when the output must use both dimensions
+exactly and stretching is acceptable.
 
 ## Why the hybrid path exists
 

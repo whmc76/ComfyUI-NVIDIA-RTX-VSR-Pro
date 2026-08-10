@@ -20,6 +20,7 @@ from typing_extensions import override
 from .vsr_pro import (
     VERIFIED_VSR_MAX_EDGE,
     assert_channel_integrity,
+    fit_dimensions_preserving_aspect,
     plan_dimensions,
     print_dimensions_to_pixels,
 )
@@ -45,6 +46,7 @@ class RTXVideoSuperResolution(io.ComfyNode):
         width_mm: float
         height_mm: float
         dpi: int
+        keep_aspect_ratio: bool
 
     @classmethod
     def define_schema(cls):
@@ -82,6 +84,14 @@ class RTXVideoSuperResolution(io.ComfyNode):
                             [
                                 io.Int.Input("width", default=1920, min=64, max=16384, step=8),
                                 io.Int.Input("height", default=1080, min=64, max=16384, step=8),
+                                io.Boolean.Input(
+                                    "keep_aspect_ratio",
+                                    default=True,
+                                    tooltip=(
+                                        "Fit the source inside the target pixel box without "
+                                        "stretching or cropping. Disable for exact width and height."
+                                    ),
+                                ),
                             ],
                         ),
                         io.DynamicCombo.Option(
@@ -110,6 +120,14 @@ class RTXVideoSuperResolution(io.ComfyNode):
                                     max=1200,
                                     step=1,
                                     tooltip="Print resolution. Pixels are calculated as mm / 25.4 x DPI.",
+                                ),
+                                io.Boolean.Input(
+                                    "keep_aspect_ratio",
+                                    default=True,
+                                    tooltip=(
+                                        "Fit the source inside the physical print box without "
+                                        "stretching or cropping. Disable for exact print dimensions."
+                                    ),
                                 ),
                             ],
                         ),
@@ -157,17 +175,40 @@ class RTXVideoSuperResolution(io.ComfyNode):
         elif selected_type == UpscaleType.TARGET_DIMENSIONS:
             requested_width = resize_type["width"]
             requested_height = resize_type["height"]
+            if resize_type.get("keep_aspect_ratio", True):
+                requested_width, requested_height = fit_dimensions_preserving_aspect(
+                    input_width=input_width,
+                    input_height=input_height,
+                    target_width=requested_width,
+                    target_height=requested_height,
+                )
+                LOGGER.info(
+                    "Pixel target preserves aspect ratio: fitted to %sx%s px.",
+                    requested_width,
+                    requested_height,
+                )
         elif selected_type == UpscaleType.PRINT_DIMENSIONS:
-            requested_width, requested_height = print_dimensions_to_pixels(
+            print_box_width, print_box_height = print_dimensions_to_pixels(
                 width_mm=resize_type["width_mm"],
                 height_mm=resize_type["height_mm"],
                 dpi=resize_type["dpi"],
             )
+            requested_width, requested_height = print_box_width, print_box_height
+            if resize_type.get("keep_aspect_ratio", True):
+                requested_width, requested_height = fit_dimensions_preserving_aspect(
+                    input_width=input_width,
+                    input_height=input_height,
+                    target_width=print_box_width,
+                    target_height=print_box_height,
+                )
             LOGGER.info(
-                "Print target %.1fx%.1f mm at %s DPI requires %sx%s px before alignment.",
+                "Print target %.1fx%.1f mm at %s DPI is a %sx%s px box; "
+                "requested output is %sx%s px before alignment.",
                 resize_type["width_mm"],
                 resize_type["height_mm"],
                 resize_type["dpi"],
+                print_box_width,
+                print_box_height,
                 requested_width,
                 requested_height,
             )
