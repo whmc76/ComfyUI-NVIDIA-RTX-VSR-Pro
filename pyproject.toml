@@ -1,10 +1,16 @@
 [project]
-name = "comfyui_nvidia_rtx_vsr_pro"
+name = "nvidia-rtx-vsr-pro"
 description = "A workflow-compatible NVIDIA RTX Video Super Resolution Pro node for ComfyUI with exact 16K hybrid processing and channel-corruption detection."
-version = "0.4.1"
-license = "LICENSE"
+version = "0.5.0"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
 dependencies = [
   "nvidia-vfx"
+]
+classifiers = [
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX :: Linux",
+  "Environment :: GPU :: NVIDIA CUDA",
 ]
 
 [project.urls]
@@ -14,4 +20,4 @@ Issues = "https://github.com/whmc76/ComfyUI-NVIDIA-RTX-VSR-Pro/issues"
 [tool.comfy]
 PublisherId = "whmc76"
 DisplayName = "ComfyUI NVIDIA RTX VSR Pro"
-Icon = "https://raw.githubusercontent.com/whmc76/ComfyUI-NVIDIA-RTX-VSR-Pro/main/icon.png"
+Icon = "https://raw.githubusercontent.com/whmc76/ComfyUI-NVIDIA-RTX-VSR-Pro/main/icon.svg"

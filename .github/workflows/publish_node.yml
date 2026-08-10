@@ -3,10 +3,10 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - '*'
+      - 'v*'
 
 permissions:
-  issues: write
+  contents: read
 
 jobs:
   publish-node:

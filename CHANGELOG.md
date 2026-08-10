@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0 - 2026-08-10
+
+- Prepare the first Comfy Registry release under the immutable node id
+  `nvidia-rtx-vsr-pro`.
+- Add Registry classifiers for Windows, Linux, and NVIDIA CUDA.
+- Add a Registry-compliant square SVG icon and harden the tagged-release
+  publishing workflow.
+
 ## 0.4.1 - 2026-08-10
 
 - Align fitted dimensions downward to the nearest 8 pixels so the result never

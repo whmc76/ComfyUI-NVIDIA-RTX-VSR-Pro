@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" role="img" aria-labelledby="title desc">
+  <title id="title">RTX VSR Pro</title>
+  <desc id="desc">A green four-times upscale mark on a dark field.</desc>
+  <rect width="400" height="400" rx="72" fill="#101411"/>
+  <path d="M92 278V151l79-46 79 46v37l58-34v124l-108 63-108-63Z" fill="none" stroke="#76b900" stroke-width="20" stroke-linejoin="round"/>
+  <path d="m117 263 83-48 83 48M200 215V120" fill="none" stroke="#dfffb0" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="266" y="73" width="82" height="68" rx="18" fill="#76b900"/>
+  <text x="307" y="120" fill="#101411" font-family="Arial, Helvetica, sans-serif" font-size="39" font-weight="800" text-anchor="middle">4×</text>
+  <text x="200" y="363" fill="#f2f6f2" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="700" letter-spacing="7" text-anchor="middle">VSR PRO</text>
+</svg>
