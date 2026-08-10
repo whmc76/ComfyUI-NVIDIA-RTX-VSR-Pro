@@ -1,7 +1,7 @@
 [project]
 name = "comfyui_nvidia_rtx_vsr_pro"
 description = "A workflow-compatible NVIDIA RTX Video Super Resolution Pro node for ComfyUI with exact 16K hybrid processing and channel-corruption detection."
-version = "0.2.0"
+version = "0.3.0"
 license = "LICENSE"
 dependencies = [
   "nvidia-vfx"

@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.0 - 2026-08-10
+## 0.3.0 - 2026-08-10
 
 - Preserve the original node id for drop-in workflow compatibility.
 - Add Pro hybrid processing for targets above `15360 px`, including exact
