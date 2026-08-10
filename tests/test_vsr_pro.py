@@ -115,6 +115,17 @@ class AspectRatioTests(unittest.TestCase):
             (2000, 4000),
         )
 
+    def test_fit_alignment_never_exceeds_target_box(self):
+        self.assertEqual(
+            fit_dimensions_preserving_aspect(
+                input_width=1024,
+                input_height=512,
+                target_width=2362,
+                target_height=2362,
+            ),
+            (2360, 1176),
+        )
+
     def test_invalid_target_box_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "must be positive"):
             fit_dimensions_preserving_aspect(

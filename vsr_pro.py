@@ -102,7 +102,9 @@ def fit_dimensions_preserving_aspect(
     if min(input_width, input_height, target_width, target_height) <= 0:
         raise ValueError("Input and target dimensions must be positive")
     scale = min(target_width / input_width, target_height / input_height)
-    return max(1, round(input_width * scale)), max(1, round(input_height * scale))
+    # Align downward so a fit operation never exceeds the target box merely to
+    # satisfy the NVIDIA effect's 8-pixel alignment requirement.
+    return _align_down(input_width * scale), _align_down(input_height * scale)
 
 
 def assert_channel_integrity(input_frame: torch.Tensor, output_frame: torch.Tensor) -> None:

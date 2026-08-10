@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.1 - 2026-08-10
+
+- Align fitted dimensions downward to the nearest 8 pixels so the result never
+  exceeds the requested pixel or physical print box.
+
 ## 0.4.0 - 2026-08-10
 
 - Add a default-on **keep aspect ratio** switch to pixel-target and print-size
