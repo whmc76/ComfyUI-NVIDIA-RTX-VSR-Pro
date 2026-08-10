@@ -1,15 +1,17 @@
+import sys
 import unittest
 from pathlib import Path
-import sys
 
 import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from safe_vsr import (
-    SAFE_VSR_MAX_EDGE,
+from vsr_pro import (
+    MAX_OUTPUT_EDGE,
+    VERIFIED_VSR_MAX_EDGE,
     assert_channel_integrity,
     plan_dimensions,
+    print_dimensions_to_pixels,
 )
 
 
@@ -21,21 +23,21 @@ class DimensionPlanningTests(unittest.TestCase):
             requested_width=15360,
             requested_height=15360,
         )
-        self.assertFalse(plan.uses_safe_fallback)
+        self.assertFalse(plan.uses_hybrid_fallback)
         self.assertEqual((plan.vsr_width, plan.vsr_height), (15360, 15360))
 
-    def test_16384_target_uses_verified_safe_intermediate(self):
+    def test_16384_target_uses_verified_intermediate(self):
         plan = plan_dimensions(
             input_width=4096,
             input_height=4096,
             requested_width=16384,
             requested_height=16384,
         )
-        self.assertTrue(plan.uses_safe_fallback)
-        self.assertEqual((plan.output_width, plan.output_height), (16384, 16384))
-        self.assertEqual((plan.vsr_width, plan.vsr_height), (SAFE_VSR_MAX_EDGE,) * 2)
+        self.assertTrue(plan.uses_hybrid_fallback)
+        self.assertEqual((plan.output_width, plan.output_height), (MAX_OUTPUT_EDGE,) * 2)
+        self.assertEqual((plan.vsr_width, plan.vsr_height), (VERIFIED_VSR_MAX_EDGE,) * 2)
 
-    def test_non_square_target_preserves_safe_edge_and_aspect(self):
+    def test_non_square_target_preserves_intermediate_aspect(self):
         plan = plan_dimensions(
             input_width=4096,
             input_height=2048,
@@ -52,6 +54,41 @@ class DimensionPlanningTests(unittest.TestCase):
                 requested_width=2048,
                 requested_height=2048,
             )
+
+    def test_output_beyond_16k_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "maximum output edge"):
+            plan_dimensions(
+                input_width=4096,
+                input_height=4096,
+                requested_width=20000,
+                requested_height=20000,
+            )
+
+
+class PrintDimensionTests(unittest.TestCase):
+    def test_millimetres_and_dpi_convert_to_pixels(self):
+        self.assertEqual(
+            print_dimensions_to_pixels(width_mm=500.0, height_mm=500.0, dpi=300),
+            (5906, 5906),
+        )
+
+    def test_print_pixels_are_aligned_for_rtx(self):
+        width, height = print_dimensions_to_pixels(
+            width_mm=500.0,
+            height_mm=500.0,
+            dpi=300,
+        )
+        plan = plan_dimensions(
+            input_width=4096,
+            input_height=4096,
+            requested_width=width,
+            requested_height=height,
+        )
+        self.assertEqual((plan.output_width, plan.output_height), (5904, 5904))
+
+    def test_non_positive_print_value_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "must be positive"):
+            print_dimensions_to_pixels(width_mm=0, height_mm=500, dpi=300)
 
 
 class ChannelIntegrityTests(unittest.TestCase):

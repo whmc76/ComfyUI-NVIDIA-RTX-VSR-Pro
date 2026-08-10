@@ -1,4 +1,4 @@
-"""Safe NVIDIA RTX Video Super Resolution node for ComfyUI.
+"""NVIDIA RTX Video Super Resolution Pro node for ComfyUI.
 
 Derived from Comfy-Org/Nvidia_RTX_Nodes_ComfyUI under Apache-2.0.
 The public node id is intentionally preserved for workflow compatibility.
@@ -17,10 +17,11 @@ import torch.nn.functional as functional
 from comfy_api.latest import ComfyExtension, io
 from typing_extensions import override
 
-from .safe_vsr import (
-    SAFE_VSR_MAX_EDGE,
+from .vsr_pro import (
+    VERIFIED_VSR_MAX_EDGE,
     assert_channel_integrity,
     plan_dimensions,
+    print_dimensions_to_pixels,
 )
 
 
@@ -30,29 +31,33 @@ LOGGER = logging.getLogger(__name__)
 class UpscaleType(str, Enum):
     SCALE_BY = "scale by multiplier"
     TARGET_DIMENSIONS = "target dimensions"
+    PRINT_DIMENSIONS = "print size (mm + DPI)"
 
 
 class RTXVideoSuperResolution(io.ComfyNode):
-    """RTX VSR with safe large-output planning and corruption detection."""
+    """RTX VSR with verified large-output planning and corruption detection."""
 
     class UpscaleTypedDict(TypedDict):
         resize_type: UpscaleType
         scale: float
         width: int
         height: int
+        width_mm: float
+        height_mm: float
+        dpi: int
 
     @classmethod
     def define_schema(cls):
         return io.Schema(
             node_id="RTXVideoSuperResolution",
-            display_name="RTX Video Super Resolution (Safe)",
+            display_name="RTX Video Super Resolution Pro",
             category="image/upscaling",
             description=(
-                "GPU-accelerated NVIDIA RTX VSR with a safe 16K fallback. "
+                "GPU-accelerated NVIDIA RTX VSR Pro with automatic 16K protection. "
                 "Large targets are enhanced at a validated intermediate size "
                 "and then resized to the exact requested dimensions."
             ),
-            search_aliases=["rtx", "nvidia", "upscale", "super resolution", "vsr", "safe 16k"],
+            search_aliases=["rtx", "nvidia", "upscale", "super resolution", "vsr", "pro 16k"],
             inputs=[
                 io.Image.Input("images"),
                 io.DynamicCombo.Input(
@@ -68,7 +73,7 @@ class RTXVideoSuperResolution(io.ComfyNode):
                                     min=1.0,
                                     max=4.0,
                                     step=0.01,
-                                    tooltip="Scale factor (for example, 4.0 turns 4096 px into 16384 px safely).",
+                                    tooltip="Scale factor (for example, 4.0 turns 4096 px into 16384 px with the Pro hybrid path).",
                                 ),
                             ],
                         ),
@@ -79,6 +84,35 @@ class RTXVideoSuperResolution(io.ComfyNode):
                                 io.Int.Input("height", default=1080, min=64, max=16384, step=8),
                             ],
                         ),
+                        io.DynamicCombo.Option(
+                            UpscaleType.PRINT_DIMENSIONS,
+                            [
+                                io.Float.Input(
+                                    "width_mm",
+                                    default=500.0,
+                                    min=1.0,
+                                    max=5000.0,
+                                    step=1.0,
+                                    tooltip="Final physical print width in millimetres.",
+                                ),
+                                io.Float.Input(
+                                    "height_mm",
+                                    default=500.0,
+                                    min=1.0,
+                                    max=5000.0,
+                                    step=1.0,
+                                    tooltip="Final physical print height in millimetres.",
+                                ),
+                                io.Int.Input(
+                                    "dpi",
+                                    default=300,
+                                    min=72,
+                                    max=1200,
+                                    step=1,
+                                    tooltip="Print resolution. Pixels are calculated as mm / 25.4 x DPI.",
+                                ),
+                            ],
+                        ),
                     ],
                 ),
                 io.Combo.Input(
@@ -87,7 +121,15 @@ class RTXVideoSuperResolution(io.ComfyNode):
                     default="ULTRA",
                 ),
             ],
-            outputs=[io.Image.Output("upscaled_images")],
+            outputs=[
+                io.Image.Output("upscaled_images"),
+                io.Float.Output(
+                    "calculated_scale",
+                    tooltip="Largest calculated output/input edge ratio.",
+                ),
+                io.Int.Output("output_width", tooltip="Final aligned pixel width."),
+                io.Int.Output("output_height", tooltip="Final aligned pixel height."),
+            ],
         )
 
     @classmethod
@@ -115,6 +157,20 @@ class RTXVideoSuperResolution(io.ComfyNode):
         elif selected_type == UpscaleType.TARGET_DIMENSIONS:
             requested_width = resize_type["width"]
             requested_height = resize_type["height"]
+        elif selected_type == UpscaleType.PRINT_DIMENSIONS:
+            requested_width, requested_height = print_dimensions_to_pixels(
+                width_mm=resize_type["width_mm"],
+                height_mm=resize_type["height_mm"],
+                dpi=resize_type["dpi"],
+            )
+            LOGGER.info(
+                "Print target %.1fx%.1f mm at %s DPI requires %sx%s px before alignment.",
+                resize_type["width_mm"],
+                resize_type["height_mm"],
+                resize_type["dpi"],
+                requested_width,
+                requested_height,
+            )
         else:
             raise ValueError(f"Unsupported resize type: {selected_type}")
 
@@ -125,9 +181,9 @@ class RTXVideoSuperResolution(io.ComfyNode):
             requested_height=requested_height,
         )
 
-        if plan.uses_safe_fallback:
+        if plan.uses_hybrid_fallback:
             LOGGER.warning(
-                "RTX VSR target %sx%s reaches the unsafe 16K boundary; "
+                "RTX VSR target %sx%s reaches the affected 16K boundary; "
                 "using %sx%s VSR intermediate and bicubic final resize.",
                 plan.output_width,
                 plan.output_height,
@@ -173,7 +229,7 @@ class RTXVideoSuperResolution(io.ComfyNode):
 
                     assert_channel_integrity(input_frame, vsr_frame)
 
-                    if plan.uses_safe_fallback:
+                    if plan.uses_hybrid_fallback:
                         vsr_frame = functional.interpolate(
                             vsr_frame.unsqueeze(0),
                             size=(plan.output_height, plan.output_width),
@@ -190,7 +246,16 @@ class RTXVideoSuperResolution(io.ComfyNode):
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
 
-        return io.NodeOutput(output)
+        calculated_scale = max(
+            plan.output_width / input_width,
+            plan.output_height / input_height,
+        )
+        return io.NodeOutput(
+            output,
+            calculated_scale,
+            plan.output_width,
+            plan.output_height,
+        )
 
 
 class NVVFXVideoExtension(ComfyExtension):
@@ -208,4 +273,4 @@ if False:
     NODE_CLASS_MAPPINGS = {"RTXVideoSuperResolution": RTXVideoSuperResolution}
 
 
-__all__ = ["RTXVideoSuperResolution", "comfy_entrypoint", "SAFE_VSR_MAX_EDGE"]
+__all__ = ["RTXVideoSuperResolution", "comfy_entrypoint", "VERIFIED_VSR_MAX_EDGE"]

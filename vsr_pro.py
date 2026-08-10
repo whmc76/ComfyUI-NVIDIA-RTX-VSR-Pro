@@ -1,4 +1,4 @@
-"""Pure safety planning and validation helpers for the RTX VSR node."""
+"""Pure dimension planning and validation helpers for RTX VSR Pro."""
 
 from __future__ import annotations
 
@@ -9,9 +9,10 @@ import torch
 
 
 ALIGNMENT = 8
+MAX_OUTPUT_EDGE = 16384
 # 15360x15360 is verified on the affected Windows/NVIDIA setup. The stock
 # node produced a zeroed blue channel at exactly 16384x16384.
-SAFE_VSR_MAX_EDGE = 15360
+VERIFIED_VSR_MAX_EDGE = 15360
 
 
 @dataclass(frozen=True)
@@ -22,7 +23,7 @@ class DimensionPlan:
     vsr_height: int
 
     @property
-    def uses_safe_fallback(self) -> bool:
+    def uses_hybrid_fallback(self) -> bool:
         return (self.output_width, self.output_height) != (self.vsr_width, self.vsr_height)
 
 
@@ -41,13 +42,20 @@ def plan_dimensions(
     requested_width: int,
     requested_height: int,
 ) -> DimensionPlan:
-    """Plan exact output and a VSR-safe intermediate, both aligned to 8 px."""
+    """Plan exact output and a verified VSR intermediate, aligned to 8 px."""
 
     if min(input_width, input_height, requested_width, requested_height) <= 0:
         raise ValueError("Input and output dimensions must be positive")
 
     output_width = _align_nearest(requested_width)
     output_height = _align_nearest(requested_height)
+
+    if max(output_width, output_height) > MAX_OUTPUT_EDGE:
+        raise ValueError(
+            "RTX VSR Pro supports a maximum output edge of "
+            f"{MAX_OUTPUT_EDGE} px. Requested {output_width}x{output_height}; "
+            "reduce the print size or DPI, or use a tiled workflow."
+        )
 
     if output_width < input_width or output_height < input_height:
         raise ValueError(
@@ -56,20 +64,30 @@ def plan_dimensions(
             f"{output_width}x{output_height}."
         )
 
-    if max(output_width, output_height) <= SAFE_VSR_MAX_EDGE:
+    if max(output_width, output_height) <= VERIFIED_VSR_MAX_EDGE:
         return DimensionPlan(output_width, output_height, output_width, output_height)
 
-    reduction = SAFE_VSR_MAX_EDGE / max(output_width, output_height)
+    reduction = VERIFIED_VSR_MAX_EDGE / max(output_width, output_height)
     vsr_width = _align_down(output_width * reduction)
     vsr_height = _align_down(output_height * reduction)
 
     if vsr_width < input_width or vsr_height < input_height:
         raise ValueError(
-            "The requested aspect ratio cannot be routed through the safe VSR "
+            "The requested aspect ratio cannot be routed through the verified VSR "
             f"intermediate without downscaling ({vsr_width}x{vsr_height})."
         )
 
     return DimensionPlan(output_width, output_height, vsr_width, vsr_height)
+
+
+def print_dimensions_to_pixels(*, width_mm: float, height_mm: float, dpi: int) -> tuple[int, int]:
+    """Convert physical millimetres and DPI to the nearest pixel dimensions."""
+
+    if width_mm <= 0 or height_mm <= 0 or dpi <= 0:
+        raise ValueError("Print width, height, and DPI must be positive")
+    width_px = round(width_mm / 25.4 * dpi)
+    height_px = round(height_mm / 25.4 * dpi)
+    return max(1, width_px), max(1, height_px)
 
 
 def assert_channel_integrity(input_frame: torch.Tensor, output_frame: torch.Tensor) -> None:
@@ -79,6 +97,7 @@ def assert_channel_integrity(input_frame: torch.Tensor, output_frame: torch.Tens
         raise ValueError("Channel validation expects [C,H,W] tensors")
     if input_frame.shape[0] != 3 or output_frame.shape[0] != 3:
         raise ValueError("Channel validation expects RGB tensors")
+
     # Sample at most roughly 512x512 pixels per channel. The observed SDK
     # failure affects the complete channel, and sampling avoids allocating a
     # 16K-sized boolean tensor merely for validation.

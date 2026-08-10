@@ -1,6 +1,6 @@
 [project]
-name = "comfyui_nvidia_rtx_vsr_safe"
-description = "A workflow-compatible NVIDIA RTX Video Super Resolution node for ComfyUI with safe 16K fallback and channel-corruption detection."
+name = "comfyui_nvidia_rtx_vsr_pro"
+description = "A workflow-compatible NVIDIA RTX Video Super Resolution Pro node for ComfyUI with exact 16K hybrid processing and channel-corruption detection."
 version = "0.2.0"
 license = "LICENSE"
 dependencies = [
@@ -8,10 +8,10 @@ dependencies = [
 ]
 
 [project.urls]
-Repository = "https://github.com/whmc76/ComfyUI-NVIDIA-RTX-VSR-Safe"
-Issues = "https://github.com/whmc76/ComfyUI-NVIDIA-RTX-VSR-Safe/issues"
+Repository = "https://github.com/whmc76/ComfyUI-NVIDIA-RTX-VSR-Pro"
+Issues = "https://github.com/whmc76/ComfyUI-NVIDIA-RTX-VSR-Pro/issues"
 
 [tool.comfy]
 PublisherId = "whmc76"
-DisplayName = "ComfyUI NVIDIA RTX VSR Safe"
-Icon = "https://raw.githubusercontent.com/whmc76/ComfyUI-NVIDIA-RTX-VSR-Safe/main/icon.png"
+DisplayName = "ComfyUI NVIDIA RTX VSR Pro"
+Icon = "https://raw.githubusercontent.com/whmc76/ComfyUI-NVIDIA-RTX-VSR-Pro/main/icon.png"
