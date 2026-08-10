@@ -1,16 +1,17 @@
 [project]
-name = "comfyui_nvidia_rtx_nodes"
-description = "NVIDIA RTX Nodes for ComfyUI\nThis extension provides GPU-accelerated nodes powered by NVIDIA RTX technology, including RTX Video Super Resolution."
-version = "0.1.3"
+name = "comfyui_nvidia_rtx_vsr_safe"
+description = "A workflow-compatible NVIDIA RTX Video Super Resolution node for ComfyUI with safe 16K fallback and channel-corruption detection."
+version = "0.2.0"
 license = "LICENSE"
 dependencies = [
   "nvidia-vfx"
 ]
 
 [project.urls]
-Repository = "https://github.com/Comfy-Org/Nvidia_RTX_Nodes_ComfyUI"
+Repository = "https://github.com/whmc76/ComfyUI-NVIDIA-RTX-VSR-Safe"
+Issues = "https://github.com/whmc76/ComfyUI-NVIDIA-RTX-VSR-Safe/issues"
 
 [tool.comfy]
-PublisherId = "comfyui"
-DisplayName = "ComfyUI_NVIDIA_RTX_Nodes"
-Icon = "https://raw.githubusercontent.com/Comfy-Org/Nvidia_RTX_Nodes_ComfyUI/refs/heads/main/icon.png"
+PublisherId = "whmc76"
+DisplayName = "ComfyUI NVIDIA RTX VSR Safe"
+Icon = "https://raw.githubusercontent.com/whmc76/ComfyUI-NVIDIA-RTX-VSR-Safe/main/icon.png"
